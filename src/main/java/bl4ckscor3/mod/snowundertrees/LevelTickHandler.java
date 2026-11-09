@@ -1,11 +1,11 @@
 package bl4ckscor3.mod.snowundertrees;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameRules;
-import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.SnowyDirtBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -48,7 +48,7 @@ public class LevelTickHandler {
 						pos = DynamicTreesHandler.findGround(level, pos.mutable());
 
 					if (pos == null)
-						return;
+						continue;
 
 					if (!SnowUnderTrees.isBiomeDisabled(level.getBiome(pos)) && SnowUnderTrees.placeSnow(level, pos)) {
 						BlockPos posBelow = pos.below();
@@ -57,9 +57,32 @@ public class LevelTickHandler {
 						if (stateBelow.hasProperty(SnowyDirtBlock.SNOWY))
 							level.setBlock(posBelow, stateBelow.setValue(SnowyDirtBlock.SNOWY, true), 2);
 					}
+				} else {
+					tryPropagate(level, randomPos.getX(), randomPos.getZ());
 				}
 			}
 		}
+	}
+
+	private static boolean tryPropagate(ServerLevel level, int x, int z) {
+		BlockPos groundPos = SnowUnderTrees.findGroundUnderTree(level, x, z);
+		if (groundPos == null || SnowUnderTrees.isSnow(level, groundPos)) return false;
+		if (SnowUnderTrees.isBiomeDisabled(level.getBiome(groundPos))) return false;
+
+		boolean hasAnchor = false;
+		for (Direction dir : Direction.Plane.HORIZONTAL) {
+			if (isAnchorSnow(level, groundPos.relative(dir))) { hasAnchor = true; break; }
+		}
+		if (!hasAnchor) return false;
+
+		return SnowUnderTrees.placeSnowAndUpdateGround(level, groundPos);
+	}
+
+	private static boolean isAnchorSnow(ServerLevel level, BlockPos pos) {
+		if (!SnowUnderTrees.isSnow(level, pos)) return false;
+		BlockPos topPos = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, pos);
+		if (level.getBlockState(topPos.below()).is(BlockTags.LEAVES)) return true;
+		return level.canSeeSky(pos);
 	}
 
 	@SubscribeEvent

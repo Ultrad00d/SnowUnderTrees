@@ -19,14 +19,17 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biome.Precipitation;
+import net.minecraft.world.level.block.SnowyDirtBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
@@ -105,6 +108,35 @@ public class SnowUnderTrees {
 		}
 
 		return false;
+	}
+
+	public static BlockPos findGroundUnderTree(WorldGenLevel level, int x, int z) {
+		BlockPos.MutableBlockPos mPos = new BlockPos.MutableBlockPos(
+				x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1, z);
+		int minY = level.getMinBuildHeight();
+		boolean hasLogAbove = false;
+
+		while (mPos.getY() > minY) {
+			BlockState state = level.getBlockState(mPos);
+			if (state.is(BlockTags.LOGS)) {
+				hasLogAbove = true;
+			} else if (!state.canBeReplaced() && !state.is(BlockTags.LEAVES)) {
+				break;
+			}
+			mPos.move(Direction.DOWN);
+		}
+
+		if (!hasLogAbove) return null;
+		return new BlockPos(x, mPos.getY() + 1, z);
+	}
+
+	public static boolean placeSnowAndUpdateGround(WorldGenLevel level, BlockPos pos) {
+		if (!placeSnow(level, pos)) return false;
+		BlockPos posBelow = pos.below();
+		BlockState stateBelow = level.getBlockState(posBelow);
+		if (stateBelow.hasProperty(SnowyDirtBlock.SNOWY))
+			level.setBlock(posBelow, stateBelow.setValue(SnowyDirtBlock.SNOWY, true), 2);
+		return true;
 	}
 
 	public static boolean isSnow(WorldGenLevel level, BlockPos pos) {
