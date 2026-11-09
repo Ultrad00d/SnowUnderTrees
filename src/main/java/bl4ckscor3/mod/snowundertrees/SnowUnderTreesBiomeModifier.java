@@ -14,7 +14,7 @@ import net.neoforged.neoforge.common.world.ModifiableBiomeInfo;
 public record SnowUnderTreesBiomeModifier(Holder<PlacedFeature> snowUnderTreesFeature) implements BiomeModifier {
 	@Override
 	public void modify(Holder<Biome> biome, Phase phase, ModifiableBiomeInfo.BiomeInfo.Builder builder) {
-		if (phase == Phase.ADD && Configuration.CONFIG.enableBiomeFeature.get()) {
+		if (phase == Phase.MODIFY && Configuration.CONFIG.enableBiomeFeature.get()) {
 			boolean isEternalWinterActive = SnowUnderTrees.isEternalWinterLoaded() && EternalWinterHandler.isActive(biome);
 
 			if (isEternalWinterActive || shouldAddToBiome(biome, builder.getClimateSettings()))
