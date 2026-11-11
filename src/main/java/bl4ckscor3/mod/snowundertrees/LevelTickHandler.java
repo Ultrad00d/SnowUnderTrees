@@ -64,18 +64,20 @@ public class LevelTickHandler {
 		}
 	}
 
-	private static boolean tryPropagate(ServerLevel level, int x, int z) {
+	private static void tryPropagate(ServerLevel level, int x, int z) {
 		BlockPos groundPos = SnowUnderTrees.findGroundUnderTree(level, x, z);
-		if (groundPos == null || SnowUnderTrees.isSnow(level, groundPos)) return false;
-		if (SnowUnderTrees.isBiomeDisabled(level.getBiome(groundPos))) return false;
+		if (groundPos == null) return;
+		if (SnowUnderTrees.isSnow(level, groundPos)) return;
+		if (SnowUnderTrees.isBiomeDisabled(level.getBiome(groundPos))) return;
+		if (!hasAnchorSnow(level, groundPos)) return;
 
-		boolean hasAnchor = false;
-		for (Direction dir : Direction.Plane.HORIZONTAL) {
-			if (isAnchorSnow(level, groundPos.relative(dir))) { hasAnchor = true; break; }
-		}
-		if (!hasAnchor) return false;
+		SnowUnderTrees.placeSnowAndUpdateGround(level, groundPos);
+	}
 
-		return SnowUnderTrees.placeSnowAndUpdateGround(level, groundPos);
+	private static boolean hasAnchorSnow(ServerLevel level, BlockPos pos) {
+		for (Direction dir : Direction.Plane.HORIZONTAL)
+			if (isAnchorSnow(level, pos.relative(dir))) return true;
+		return false;
 	}
 
 	private static boolean isAnchorSnow(ServerLevel level, BlockPos pos) {
